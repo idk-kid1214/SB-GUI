@@ -1,39 +1,48 @@
--- Integrated GUI Script with All Features
+-- Integrated GUI Script with Toggleable Anti-Knockback, Sprint, and Auto Slap
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+-- Automatically clone this script to StarterGui so it's always present.
+task.spawn(function()
+    local clone = script:Clone()
+    clone.Parent = StarterGui
+end)
+
 -- Wait for character and HRP
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
--- Configuration for Auto-Slap (from your snippet)
+-- Configuration
 local DETECTION_RADIUS = 15
 local COOLDOWN_TIME = 0.6
-local AUTO_SLAP_ENABLED = true
+local AUTO_SLAP_ENABLED = false
+local ANTI_KNOCKBACK_ENABLED = false
+local SPRINT_ENABLED = false
 local canSlap = true
 local equipped = false
 local currentGlove = nil
 
 --------------------------------------------
--- Create our custom GUI (not the original auto-slap GUI)
+-- Create GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = PlayerGui
 
--- Move the frame up a bit so that all buttons are visible
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 350)
-frame.Position = UDim2.new(0.8, 0, 0.1, 0)
+frame.Size = UDim2.new(0, 200, 0, 400)
+frame.Position = UDim2.new(0.8, 0, 0.05, 0) -- Moved up so no button is cut off
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.Parent = screenGui
 
--- Helper function to create buttons within the frame
+-- Helper function to create buttons
 local function createButton(text, callback)
     local button = Instance.new("TextButton")
     button.Size = UDim2.new(1, -10, 0, 40)
-    -- Calculate button Y position based on count of existing buttons (only count TextButtons)
     local count = 0
     for _, child in ipairs(frame:GetChildren()) do
         if child:IsA("TextButton") then
@@ -48,25 +57,21 @@ local function createButton(text, callback)
     button.TextSize = 20
     button.Parent = frame
     button.MouseButton1Click:Connect(function()
-        callback()
-        -- For toggle buttons (e.g. Auto Slap) change background color to a slight green hue if enabled.
-        if text == "Auto Slap" then
-            button.BackgroundColor3 = AUTO_SLAP_ENABLED and Color3.fromRGB(50,255,50) or Color3.fromRGB(0,0,0)
-        end
+        callback(button)
     end)
     return button
 end
 
 --------------------------------------------
--- Other Functionality
+-- Other Functions
 
--- 1. Delete Cube of Death (one line)
+-- Delete Cube of Death (one line)
 local function deleteCubeOfDeath()
     local cube = game.Workspace.Arena.CubeOfDeathArea:FindFirstChild("the cube of death(i heard it kills)")
     if cube then cube:Destroy() end
 end
 
--- 2. Delete Death Barriers
+-- Delete Death Barriers
 local function deleteDeathBarriers()
     local barrierNames = {"AntiDefaultArena", "Antidream", "ArenaBarrier", "DEATHBARRIER", "DEATHBARRIER2", "dedBarrier"}
     for _, name in ipairs(barrierNames) do
@@ -75,7 +80,7 @@ local function deleteDeathBarriers()
     end
 end
 
--- 3. Enable AntiVoid: Clone main island grass, rename to antivoid, set size and transparency.
+-- Enable AntiVoid
 local function enableAntiVoid()
     local island = game.Workspace.Arena:FindFirstChild("main island")
     if island and not island:FindFirstChild("antivoid") then
@@ -90,7 +95,7 @@ local function enableAntiVoid()
     end
 end
 
--- 4. Disable AntiVoid
+-- Disable AntiVoid
 local function disableAntiVoid()
     local island = game.Workspace.Arena:FindFirstChild("main island")
     if island then
@@ -99,88 +104,96 @@ local function disableAntiVoid()
     end
 end
 
--- 5. Toggle Anti-Knockback (Do not change this)
-local function toggleAntiKnockback()
-    local playerChar = game.Workspace:FindFirstChild(LocalPlayer.Name)
-    if playerChar then
-        local ragdolled = playerChar:FindFirstChild("Ragdolled")
-        local rootPart = playerChar:FindFirstChild("HumanoidRootPart")
-        if ragdolled and rootPart then
-            task.spawn(function()
-                while true do
-                    if ragdolled.Value then
-                        rootPart.Anchored = true
-                    else
-                        rootPart.Anchored = false
+-- Toggleable Anti-Knockback Function
+local function toggleAntiKnockback(button)
+    ANTI_KNOCKBACK_ENABLED = not ANTI_KNOCKBACK_ENABLED
+    button.BackgroundColor3 = ANTI_KNOCKBACK_ENABLED and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(0, 0, 0)
+    
+    if not ANTI_KNOCKBACK_ENABLED then
+        HumanoidRootPart.Anchored = false
+    else
+        task.spawn(function()
+            while ANTI_KNOCKBACK_ENABLED do
+                local playerChar = game.Workspace:FindFirstChild(LocalPlayer.Name)
+                if playerChar then
+                    local ragdolled = playerChar:FindFirstChild("Ragdolled")
+                    if ragdolled then
+                        HumanoidRootPart.Anchored = ragdolled.Value
                     end
-                    task.wait(0.1)
                 end
-            end)
-        end
+                task.wait(0.1)
+            end
+        end)
     end
 end
 
---------------------------------------------
--- Auto-Slap Functions (exactly as in your provided script)
+-- Toggle Sprint Function
+local function toggleSprint(button)
+    SPRINT_ENABLED = not SPRINT_ENABLED
+    button.BackgroundColor3 = SPRINT_ENABLED and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(0, 0, 0)
+    Humanoid.WalkSpeed = SPRINT_ENABLED and 50 or 16
+end
 
--- Function to get the currently equipped glove
+--------------------------------------------
+-- Auto-Slap Functions (from provided script)
+
 local function getEquippedGlove()
     if Character then
         for _, tool in pairs(Character:GetChildren()) do
             if tool:IsA("Tool") then
-                return tool -- Return whatever glove is being held
+                return tool -- Return whichever glove is held
             end
         end
     end
     return nil
 end
 
--- Function to slap a player
 local function slapPlayer(targetPlayer)
     if not canSlap or not equipped then return end
     local glove = getEquippedGlove()
-    if not glove then return end -- Ensure the player is holding something
+    if not glove then return end -- Make sure the player is holding something
     glove:Activate() -- Activate the tool
-    if _G.slaptrack then
-        _G.slaptrack:Play()
-    end
+    if _G.slaptrack then _G.slaptrack:Play() end
     local targetHRP = targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
     if targetHRP and ReplicatedStorage:FindFirstChild("KSHit") then
         ReplicatedStorage.KSHit:FireServer(targetHRP)
     end
-    -- Set cooldown
     canSlap = false
-    task.delay(COOLDOWN_TIME, function()
-        canSlap = true
-    end)
+    task.delay(COOLDOWN_TIME, function() canSlap = true end)
 end
 
--- Function to find the nearest valid player
-local function findNearestValidPlayer()
-    local closestPlayer = nil
-    local closestDistance = DETECTION_RADIUS
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local playerCharacter = player.Character
-            if playerCharacter and
-               playerCharacter:FindFirstChild("HumanoidRootPart") and
-               playerCharacter:FindFirstChild("Humanoid") and
-               playerCharacter.Humanoid.Health > 0 then
-                local distance = (playerCharacter.HumanoidRootPart.Position - HumanoidRootPart.Position).Magnitude
-                if distance < closestDistance then
-                    closestDistance = distance
-                    closestPlayer = player
+local function toggleAutoSlap(button)
+    AUTO_SLAP_ENABLED = not AUTO_SLAP_ENABLED
+    button.BackgroundColor3 = AUTO_SLAP_ENABLED and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(0, 0, 0)
+end
+
+task.spawn(function()
+    while true do
+        if AUTO_SLAP_ENABLED and equipped and canSlap then
+            local nearestPlayer = nil
+            local closestDistance = DETECTION_RADIUS
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    local distance = (player.Character.HumanoidRootPart.Position - HumanoidRootPart.Position).Magnitude
+                    if distance < closestDistance then
+                        closestDistance = distance
+                        nearestPlayer = player
+                    end
                 end
             end
+            if nearestPlayer then
+                slapPlayer(nearestPlayer)
+            end
         end
+        RunService.Heartbeat:Wait()
     end
-    return closestPlayer
-end
+end)
 
--- Equip detection for Auto-Slap
+--------------------------------------------
+-- Tool Equip Monitoring for Auto-Slap
 local function onToolEquipped(tool)
     equipped = true
-    currentGlove = tool.Name -- Store the name of the equipped glove
+    currentGlove = tool.Name
     print(currentGlove .. " equipped - Auto slap activated")
 end
 
@@ -216,26 +229,12 @@ end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 setupCharacter(Character)
 
--- Auto-Slap Loop using the provided code
-task.spawn(function()
-    while true do
-        if AUTO_SLAP_ENABLED and equipped and canSlap then
-            local nearestPlayer = findNearestValidPlayer()
-            if nearestPlayer then
-                slapPlayer(nearestPlayer)
-            end
-        end
-        RunService.Heartbeat:Wait()
-    end
-end)
-
 --------------------------------------------
--- Add Buttons to the GUI Frame
+-- Add Buttons to the GUI
 createButton("Delete Cube of Death", deleteCubeOfDeath)
 createButton("Delete Death Barriers", deleteDeathBarriers)
 createButton("Enable AntiVoid", enableAntiVoid)
 createButton("Disable AntiVoid", disableAntiVoid)
 createButton("Toggle Anti-Knockback", toggleAntiKnockback)
-createButton("Auto Slap", function() 
-    AUTO_SLAP_ENABLED = not AUTO_SLAP_ENABLED 
-end)
+createButton("Auto Slap", toggleAutoSlap)
+createButton("Sprint", toggleSprint)
