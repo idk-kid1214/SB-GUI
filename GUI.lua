@@ -85,7 +85,7 @@ local function toggleAutoFarm(button)
                             local newPosition = targetHRP.Position + direction
 
                             -- Teleport behind the target
-                            myHRP.Anchored = false
+                            myHRP.Anchored = true
                             myHRP.CFrame = CFrame.new(newPosition, targetHRP.Position) -- Face target
 
                             -- Auto-slap after teleporting
