@@ -64,6 +64,37 @@ end
 
 --------------------------------------------
 -- Other Functions
+    -- Autofarm Toggle
+    local AUTOFARM_ENABLED = false
+    local function toggleAutoFarm(button)
+        AUTOFARM_ENABLED = not AUTOFARM_ENABLED
+        button.BackgroundColor3 = AUTOFARM_ENABLED and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(0, 0, 0)
+        
+        if AUTOFARM_ENABLED then
+            task.spawn(function()
+                while AUTOFARM_ENABLED do
+                    local players = Players:GetPlayers()
+                    if #players > 1 then
+                        local target = players[math.random(1, #players)]
+                        if target ~= LocalPlayer and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                            local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                            if myHRP then
+                                myHRP.Anchored = true
+                                myHRP.CFrame = target.Character.HumanoidRootPart.CFrame
+                            end
+                        end
+                    end
+                    task.wait(1)
+                end
+                -- Unanchor when disabled
+                local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if myHRP then
+                    myHRP.Anchored = false
+                end
+            end)
+        end
+    end
+    
 
 -- Delete Cube of Death (one line)
 local function deleteCubeOfDeath()
@@ -238,3 +269,4 @@ createButton("Disable AntiVoid", disableAntiVoid)
 createButton("Toggle Anti-Knockback", toggleAntiKnockback)
 createButton("Auto Slap", toggleAutoSlap)
 createButton("Sprint", toggleSprint)
+createButton("Toggle Autofarm", toggleAutoFarm)
