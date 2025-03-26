@@ -284,3 +284,22 @@ createButton("Toggle Anti-Knockback", toggleAntiKnockback)
 createButton("Auto Slap", toggleAutoSlap)
 createButton("Sprint", toggleSprint)
 createButton("Toggle Autofarm", toggleAutoFarm)
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local function onCharacterAdded(character)
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.Died:Connect(function()
+            player.CharacterAdded:Wait() -- Wait for the new character to spawn
+            task.wait(2) -- Ensure full respawn process is fully complete
+            loadstring(game:HttpGet('https://raw.githubusercontent.com/idk-kid1214/SB-GUI/refs/heads/main/GUI.lua'))()
+        end)
+    end
+end
+
+if player.Character then
+    onCharacterAdded(player.Character)
+end
+
+player.CharacterAdded:Connect(onCharacterAdded)
