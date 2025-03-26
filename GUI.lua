@@ -292,7 +292,6 @@ local function onCharacterAdded(character)
     if humanoid then
         humanoid.Died:Connect(function()
             player.CharacterAdded:Wait() -- Wait for the new character to spawn
-            task.wait(1) -- Ensure full respawn process is fully complete
             loadstring(game:HttpGet('https://raw.githubusercontent.com/idk-kid1214/SB-GUI/refs/heads/main/GUI.lua'))()
         end)
     end
