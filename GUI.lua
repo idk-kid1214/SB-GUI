@@ -5,7 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local CoreGui = LocalPlayer:WaitForChild("CoreGui")
 
 -- Automatically clone this script to StarterGui so it's always present.
 task.spawn(function()
@@ -31,7 +31,7 @@ local currentGlove = nil
 --------------------------------------------
 -- Create GUI
 local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = PlayerGui
+screenGui.Parent = CoreGui
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 400)
@@ -90,7 +90,6 @@ local function toggleAutoFarm(button)
 
                             -- Auto-slap after teleporting
                             if myGlove then
-                                task.wait(0.1) -- Small delay to ensure position update
                                 myGlove:Activate()
                                 ReplicatedStorage.KSHit:FireServer(targetHRP)
                             end
@@ -287,19 +286,31 @@ createButton("Toggle Autofarm", toggleAutoFarm)
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
+local player = game.Players.LocalPlayer
+
 local function onCharacterAdded(character)
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if humanoid then
         humanoid.Died:Connect(function()
+            task.wait(0.3) -- Wait before executing after death
             player.CharacterAdded:Wait() -- Wait for the new character to spawn
-            task.wait(1)
-            loadstring(game:HttpGet('https://raw.githubusercontent.com/idk-kid1214/SB-GUI/refs/heads/main/GUI.lua'))()
+            local Players = game:GetService("Players")
+            local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            local RunService = game:GetService("RunService")
+            local StarterGui = game:GetService("StarterGui")
+            local LocalPlayer = Players.LocalPlayer
+            local CoreGui = LocalPlayer:WaitForChild("CoreGui")
+            onCharacterAdded(player.Character) -- Call again with the new character
         end)
     end
 end
 
+-- Connect to CharacterAdded initially for when the script runs.
+player.CharacterAdded:Connect(onCharacterAdded)
+
+-- Also handle case where player already has a character upon running this code.
 if player.Character then
     onCharacterAdded(player.Character)
 end
-
-player.CharacterAdded:Connect(onCharacterAdded)
